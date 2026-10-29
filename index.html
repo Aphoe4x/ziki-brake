@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>#764 · Agent in flight · Ziki</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23020617'/%3E%3Cpath d='M16 7l7 5-7 5-7-5z' fill='%236d5cff'/%3E%3Cpath d='M16 19l7-5v6l-7 5-7-5v-6z' fill='%2334d399'/%3E%3C/svg%3E">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f7fb;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --border: #e4e8f0;
+    --border-2: #d6dce8;
+    --text: #0f172a;
+    --muted: #5b6b86;
+    --dim: #64748b;
+    --violet: #4a3ad0;
+    --violet-2: #6d5cff;
+    --violet-soft: #eeeaff;
+    --blue: #2563eb;
+    --green: #0b7a52;
+    --green-soft: #e6f7ef;
+    --amber: #b45309;
+    --amber-soft: #fff6e5;
+    --amber-line: #f0c68a;
+    --red: #b91c1c;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+  html, body { background: var(--bg); }
+  body { color: var(--text); font: 13.5px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; border-radius: 6px; }
+
+  /* top bar */
+  .top { position: sticky; top: 0; z-index: 40; height: 50px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 16px; background: #fff; border-bottom: 1px solid #e6eaf2; }
+  .nav-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
+  .logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 15px; letter-spacing: -.02em; text-decoration: none; }
+  .logo-mark { width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg, #8b5cf6, #3b82f6); display: grid; place-items: center; font-size: 11px; font-weight: 900; }
+  .org { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; font-weight: 500; background: none; border: 0; padding: 4px 6px; cursor: pointer; }
+  .org:hover { color: var(--text); }
+  .nav-links { display: flex; gap: 16px; }
+  .nav-links a { display: inline-flex; align-items: center; gap: 6px; color: #5b6b86; font-size: 12.5px; text-decoration: none; padding: 4px 2px; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-links svg { width: 13px; height: 13px; opacity: .8; }
+  .nav-right { display: flex; align-items: center; gap: 8px; }
+  .nav-pill { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #dfe4ee; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 600; color: #1d4ed8; cursor: pointer; }
+  .nav-pill.violet { border-color: #d3cdf9; background: #eeeaff; color: #4a3ad0; }
+  .pts { display: inline-flex; align-items: center; gap: 5px; background: #fff6e5; border: 1px solid #f0c68a; border-radius: 999px; padding: 4px 10px; font-size: 11.5px; font-weight: 700; color: var(--amber); }
+  .ava { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #a855f7, #6366f1); display: grid; place-items: center; font-size: 10px; font-weight: 800; }
+  .bell { position: relative; width: 28px; height: 28px; display: grid; place-items: center; background: none; border: 0; cursor: pointer; color: #5b6b86; }
+  .bell svg { width: 15px; height: 15px; }
+  .bell::after { content: ""; position: absolute; top: 4px; right: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--red); }
+
+  /* page head */
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 18px 20px 64px; }
+  .head { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 12px; align-items: start; margin-bottom: 16px; }
+  .back { width: 22px; height: 22px; display: grid; place-items: center; color: var(--muted); text-decoration: none; margin-top: 3px; font-size: 15px; }
+  .head h1 { font-size: 19px; line-height: 1.35; font-weight: 800; letter-spacing: -.015em; max-width: 32ch; }
+  .head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 999px; border: 1px solid #dfe4ee; background: #fff; font-size: 12px; font-weight: 600; color: #334155; cursor: pointer; white-space: nowrap; }
+  .pill .sep { color: #a0aaba; font-weight: 400; }
+  .pill.ok { border-color: #b8e7d2; background: #e6f7ef; color: #0b7a52; }
+  .pill.up { border: 0; color: #fff; background: linear-gradient(180deg, #4a3ad0, #5b4be0); box-shadow: 0 2px 10px -2px rgba(109, 92, 255, .6); }
+
+  /* ---------- flight band ---------- */
+  .flight {
+    position: relative;
+    margin: 0 -20px 16px; padding: 15px 20px 13px;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .flight.flash::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(240, 198, 138, .28), rgba(240, 198, 138, 0));
+    animation: flash .9s ease-out forwards;
+  }
+  @keyframes flash { from { opacity: 0; } 18% { opacity: 1; } to { opacity: 0; } }
+
+  .fl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .fl-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .fl-av { width: 26px; height: 26px; border-radius: 50%; background: var(--green-soft); color: var(--green); display: grid; place-items: center; font-size: 10px; font-weight: 800; border: 1px solid #b8e7d2; }
+  .flight.halted .fl-av { background: var(--amber-soft); border-color: var(--amber-line); color: var(--amber); }
+  .fl-k { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #4a3ad0; }
+  .flight.halted .fl-k { color: var(--amber); }
+  .fl-name { font-size: 14px; font-weight: 800; letter-spacing: -.01em; }
+  .fl-name span { font-weight: 500; color: var(--muted); font-size: 12.5px; }
+  .fl-state { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-size: 10.5px; color: #64748b; flex-wrap: wrap; }
+  .fl-state .live { display: inline-flex; align-items: center; gap: 5px; }
+  .fl-state .live i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(11, 122, 82, .12); animation: throb 1.6s ease-in-out infinite; }
+  .flight.halted .fl-state .live i, .flight.done .fl-state .live i { background: var(--amber); box-shadow: none; animation: none; }
+  .flight.handed .fl-state .live i { background: var(--violet); box-shadow: none; animation: none; }
+  @keyframes throb { 50% { opacity: .3; } }
+
+  .fl-body { display: grid; grid-template-columns: minmax(0, 1fr) 258px; gap: 20px; margin-top: 13px; }
+  .plan { min-width: 0; }
+  .plan-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: #8b96a8; margin-bottom: 4px; }
+  .plan-top b { color: #334155; font-weight: 600; letter-spacing: .06em; }
+
+  .steps { list-style: none; }
+  .step { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 9px; align-items: start; padding: 6px 0; border-top: 1px solid #f4f6fa; }
+  .step:first-child { border-top: 0; }
+  .step-m { width: 18px; height: 18px; margin-top: 1px; border-radius: 50%; border: 1px solid var(--border-2); display: grid; place-items: center; font-size: 8.5px; color: #8b96a8; background: #fff; }
+  .step.done .step-m { border-color: #b8e7d2; background: var(--green-soft); color: var(--green); }
+  .step.run .step-m { border-color: var(--violet); color: var(--violet); background: var(--violet-soft); }
+  .step.run .step-m::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--violet); animation: throb 1.2s ease-in-out infinite; }
+  .step.halt .step-m { border-color: #d99a4e; background: var(--amber-soft); color: var(--amber); }
+  .step.halt .step-t { color: #334155; font-weight: 700; }
+  .step.never .step-m { border-style: dashed; opacity: .7; }
+  .step.never .step-t { color: #9aa5b6; }
+  .step-t { font-size: 12.5px; color: #334155; line-height: 1.45; }
+  .step.run .step-t { font-weight: 600; color: var(--text); }
+  .step.done .step-t { color: #64748b; }
+  .step-meta { font-family: var(--mono); font-size: 9.5px; color: #9aa5b6; white-space: nowrap; padding-top: 2px; }
+  .step.halt .step-meta { color: var(--amber); font-weight: 600; }
+  .step-bar { height: 3px; border-radius: 2px; background: #eef1f7; overflow: hidden; margin-top: 5px; max-width: 320px; }
+  .step-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #a99ef0, var(--violet)); border-radius: 2px; }
+  .step.halt .step-bar i { background: linear-gradient(90deg, #eebd75, var(--amber)); }
+
+  /* brake */
+  .brake-col { border-left: 1px solid #eef1f7; padding-left: 18px; min-width: 0; }
+  .brake-k { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: #8b96a8; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 8px; }
+  .brake-k b { color: #334155; font-weight: 600; }
+  .brake {
+    position: relative; overflow: hidden; width: 100%; height: 54px;
+    border: 0; border-radius: 12px;
+    background: linear-gradient(180deg, #5b4be0, var(--violet));
+    color: #fff; font-size: 13.5px; font-weight: 700; letter-spacing: -.01em;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    cursor: pointer; box-shadow: 0 6px 16px -8px rgba(74, 58, 208, .75), inset 0 1px 0 rgba(255, 255, 255, .25);
+    transition: transform .1s, filter .15s, background .2s;
+    touch-action: none; user-select: none;
+  }
+  .brake:hover:not(:disabled) { filter: brightness(1.06); }
+  .brake:active:not(:disabled) { transform: scale(.985); }
+  .brake:disabled { cursor: default; }
+  .flight.halted .brake, .flight.handed .brake, .flight.done .brake { background: #eef1f7; color: #8b96a8; box-shadow: none; }
+  .brake-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(255, 255, 255, .3); pointer-events: none; }
+  .brake-lbl { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 7px; }
+  .brake-lbl svg { width: 14px; height: 14px; }
+  .brake-hint { font-size: 10.5px; color: #8b96a8; margin-top: 6px; line-height: 1.45; }
+  .brake-line { margin-top: 9px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .brake-line b { color: #334155; font-weight: 600; }
+
+  /* halted strip */
+  .halt-bar {
+    display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: 12px; padding: 9px 11px;
+    background: var(--amber-soft); border: 1px solid var(--amber-line); border-left: 3px solid var(--amber);
+    border-radius: 8px;
+  }
+  .halt-bar.on { display: flex; }
+  .halt-bar .k { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
+  .halt-bar .v { font-size: 12.5px; font-weight: 600; }
+  .halt-bar .pct { font-family: var(--mono); font-size: 11px; color: var(--amber); margin-left: auto; }
+
+  /* steer */
+  .steer { display: none; margin-top: 11px; padding-top: 11px; border-top: 1px solid #eef1f7; }
+  .steer.on { display: block; }
+  .steer-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .steer-h .k { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: #4a3ad0; }
+  .steer-h .q { font-size: 12.5px; color: #334155; }
+  .chips { display: flex; gap: 7px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border-2); background: #fff; color: #334155;
+    border-radius: 999px; padding: 6px 11px; font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .chip:hover { border-color: #b9c2d3; }
+  .chip.on { border-color: var(--violet); background: var(--violet-soft); color: var(--violet); }
+  .chip .dot { width: 5px; height: 5px; border-radius: 50%; background: #c3ccda; }
+  .chip.on .dot { background: var(--violet); }
+  .steer-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 9px; }
+  .go { height: 30px; padding: 0 13px; border-radius: 8px; border: 0; background: var(--violet); color: #fff; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+  .go:disabled { opacity: .35; cursor: not-allowed; }
+  .steer-foot .note { font-size: 11px; color: #8b96a8; }
+
+  /* replan */
+  .replan-note {
+    display: none; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-top: 10px; font-size: 11.5px; color: #334155;
+  }
+  .replan-note.on { display: flex; }
+  .replan-note .badge { font-family: var(--mono); font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--violet); background: var(--violet-soft); border: 1px solid #d3cdf9; border-radius: 4px; padding: 1px 5px; }
+  .discarded { font-size: 11.5px; color: #8b96a8; margin-bottom: 6px; }
+  .discarded s { color: #9aa5b6; }
+
+  .step.in { animation: stepin .34s ease both; }
+  @keyframes stepin { from { opacity: 0; transform: translateY(4px); } }
+
+  .bound { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid #eef1f7; }
+  .bound-col { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+  .bound-k { font-family: var(--mono); font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: #8b96a8; white-space: nowrap; }
+  .bound-col.you .bound-k { color: #4a3ad0; }
+  .bound-v { font-size: 11.5px; color: #5b6b86; }
+
+  .fl-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .fl-foot .try { font-size: 11px; color: #8b96a8; margin-right: auto; }
+  .sbtn { height: 25px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--border-2); background: #fff; font-size: 11.5px; font-weight: 600; color: #334155; cursor: pointer; }
+  .sbtn:hover { border-color: #b9c2d3; }
+
+  /* handback */
+  .handback { display: none; margin-top: 12px; padding: 12px; border: 1px solid #d3cdf9; background: linear-gradient(180deg, var(--violet-soft), #fff); border-radius: 10px; }
+  .handback.on { display: block; }
+  .handback b { font-size: 13px; }
+  .handback p { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* ---------- columns ---------- */
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) 324px; gap: 16px; align-items: start; }
+  .stack { display: grid; gap: 14px; min-width: 0; }
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .card-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
+  .card-k { font-family: var(--mono); font-size: 10px; letter-spacing: .11em; text-transform: uppercase; color: #64748b; }
+  .card-k b { color: #334155; font-weight: 700; }
+  .card-a { font-size: 11.5px; color: #5b6b86; background: none; border: 0; cursor: pointer; }
+
+  .desc h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .desc p { color: #334155; font-size: 13px; line-height: 1.6; }
+  .desc p + h4 { margin-top: 12px; }
+  .desc .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .desc .more { margin-top: 8px; font-size: 12px; color: var(--blue); background: none; border: 0; cursor: pointer; padding: 0; }
+
+  .evs { list-style: none; display: grid; }
+  .ev { display: grid; grid-template-columns: 20px 1fr; gap: 9px; padding: 9px 0; border-top: 1px solid #f4f6fa; }
+  .ev:first-child { border-top: 0; padding-top: 2px; }
+  .ev-dot { width: 7px; height: 7px; border-radius: 50%; margin: 6px 0 0 6px; background: #c3ccda; }
+  .ev.agent .ev-dot { background: var(--green); }
+  .ev.you .ev-dot { background: var(--violet); }
+  .ev.system .ev-dot { background: var(--amber); }
+  .ev p { font-size: 12.5px; color: #334155; }
+  .ev p b { color: var(--text); font-weight: 600; }
+  .ev-t { display: block; font-family: var(--mono); font-size: 10px; color: #7b8799; margin-top: 2px; }
+  .ev.fresh { animation: evin .4s ease both; }
+  @keyframes evin { from { opacity: 0; transform: translateY(-4px); } }
+  .ev.empty p { color: #8b96a8; }
+
+  /* rail */
+  .rail { position: sticky; top: 66px; display: grid; gap: 12px; min-width: 0; }
+  .status-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .st { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #b45309; }
+  .st i { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
+  .st.held { color: var(--amber); } .st.held i { background: var(--amber); animation: throb 1.6s ease-in-out infinite; }
+  .st.work { color: var(--green); } .st.work i { background: var(--green); }
+  .st.yours { color: var(--violet); } .st.yours i { background: var(--violet); }
+  .sev { font-size: 10.5px; font-weight: 600; color: #5b6b86; border: 1px solid var(--border-2); border-radius: 999px; padding: 1px 7px; }
+  .opened { font-size: 11.5px; color: var(--dim); margin-top: 8px; }
+  .opened b { color: #334155; font-weight: 600; }
+
+  .saved { border: 1px solid var(--border); border-radius: 9px; padding: 10px; background: var(--surface-2); }
+  .saved .big { font-size: 20px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .saved .big span { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+  .saved .sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .saved ul { list-style: none; margin-top: 7px; display: grid; gap: 3px; }
+  .saved li { font-family: var(--mono); font-size: 10.5px; color: #64748b; display: flex; gap: 6px; }
+  .saved li::before { content: "·"; color: #a0aaba; }
+
+  .person { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 9px; align-items: center; padding: 7px 0; border-top: 1px solid #f4f6fa; }
+  .person:first-of-type { border-top: 0; padding-top: 0; }
+  .pav { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 9.5px; font-weight: 800; }
+  .pav.r { background: #eef2f8; color: #475569; }
+  .pav.a { background: var(--violet-soft); color: #4a3ad0; }
+  .p-l { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: #8b96a8; font-family: var(--mono); }
+  .p-n { font-size: 12.5px; font-weight: 600; }
+  .p-n span { font-weight: 400; color: var(--dim); }
+
+  .pr-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pr-name { font-size: 12.5px; font-weight: 600; }
+  .pr-meta { font-size: 11px; color: var(--dim); margin-top: 3px; }
+  .pr-ask { display: flex; gap: 7px; align-items: flex-start; margin-top: 9px; font-size: 11.5px; color: #334155; background: var(--amber-soft); border: 1px solid var(--amber-line); border-radius: 8px; padding: 7px 9px; }
+  .pr-ask b { font-weight: 600; }
+
+  @media (max-width: 860px) {
+    .fl-body { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .brake-col { border-left: 0; padding-left: 0; border-top: 1px solid #eef1f7; padding-top: 12px; }
+    .cols { grid-template-columns: minmax(0, 1fr); }
+    .rail { position: static; grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 700px) {
+    .nav-links, .org { display: none; }
+    .pts, .nav-pill { display: none; }
+    .nav-right { gap: 6px; }
+    .nav-left { gap: 10px; min-width: 0; }
+    .wrap { padding: 14px 14px 48px; }
+    .flight { margin: 0 -14px 14px; padding: 13px 14px 12px; }
+    .head { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .back { display: none; }
+    .head h1 { font-size: 16.5px; }
+    .head-actions { justify-content: flex-start; }
+    .bound { gap: 8px; }
+    .bound-col { width: 100%; }
+  }
+  @media (max-width: 460px) {
+    .rail { grid-template-columns: minmax(0, 1fr); }
+    .fl-state { font-size: 9.5px; }
+    .step-t { font-size: 12px; }
+    .pill { white-space: normal; height: auto; min-height: 28px; padding: 4px 10px; text-align: left; line-height: 1.35; }
+    .unassign { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="nav-left">
+    <a class="logo" href="#"><span class="logo-mark" aria-hidden="true">Z</span>Ziki</a>
+    <button class="org" type="button">Zedu <span aria-hidden="true">⌄</span></button>
+    <nav class="nav-links" aria-label="Product areas">
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 3l14 9-14 9z"/></svg>Product</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg>Marketing</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>Security</a>
+    </nav>
+  </div>
+  <div class="nav-right">
+    <button class="nav-pill" type="button">Agents <span aria-hidden="true">⌄</span></button>
+    <button class="nav-pill violet" type="button">APHOE <span aria-hidden="true">⌄</span></button>
+    <span class="pts">10,391 pts</span>
+    <button class="bell" type="button" aria-label="Notifications">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21a2 2 0 004 0"/></svg>
+    </button>
+    <span class="ava" aria-hidden="true">A</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="head">
+    <a class="back" href="#" aria-label="Back to issues">←</a>
+    <h1>#764 Mobile: unread notification badge on bottom navigation tab bar is misaligned for multi-digit counts</h1>
+    <div class="head-actions">
+      <button class="pill ok" type="button"><span aria-hidden="true">✓</span> Assigned to you <span class="unassign"><span class="sep">·</span> Unassign</span></button>
+      <button class="pill up" type="button">↑ Upvoted <b>4</b></button>
+    </div>
+  </div>
+
+  <section class="flight" id="flight" aria-label="Agent in flight">
+    <div class="fl-head">
+      <div class="fl-id">
+        <span class="fl-av" aria-hidden="true">JA</span>
+        <div>
+          <div class="fl-k" id="flK">Agent in flight</div>
+          <div class="fl-name" id="flName">Javis <span>· working on #764</span></div>
+        </div>
+      </div>
+      <div class="fl-state">
+        <span class="live"><i aria-hidden="true"></i> <span id="flState">running · step 3 of 7</span></span>
+        <span id="flClock">00:04:12</span>
+      </div>
+    </div>
+
+    <div class="fl-body">
+      <div class="plan">
+        <div class="plan-top"><span>Plan <b id="planCount">7 steps</b></span><span id="planEdit">editing badge.tsx</span></div>
+        <ol class="steps" id="steps"></ol>
+      </div>
+
+      <div class="brake-col">
+        <div class="brake-k"><span>Human control</span><b>hold 0.4s</b></div>
+        <button class="brake" id="brake" type="button" aria-label="Hold to halt the agent" aria-describedby="brakeHint">
+          <span class="brake-fill" id="brakeFill"></span>
+          <span class="brake-lbl" id="brakeLbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            Hold to halt
+          </span>
+        </button>
+        <p class="brake-hint" id="brakeHint">Holding stops Javis at the next instruction — not the next file. Nothing queued runs.</p>
+        <p class="brake-line"><b>Only a person can press this.</b> Javis can stop itself, but it cannot resume itself, and it cannot clear a halt.</p>
+      </div>
+    </div>
+
+    <div class="halt-bar" id="haltBar">
+      <span class="k">Halted</span>
+      <span class="v" id="haltText">Javis stopped mid-edit. 3 queued steps never ran.</span>
+      <span class="pct" id="haltPct">62%</span>
+    </div>
+
+    <div class="steer" id="steer">
+      <div class="steer-h">
+        <span class="k">You are the only one who can restart it</span>
+        <span class="q">What did Javis get wrong?</span>
+      </div>
+      <div class="chips" id="chips">
+        <button class="chip" type="button" data-c="row"><span class="dot" aria-hidden="true"></span>The nav row is the constraint</button>
+        <button class="chip" type="button" data-c="inset"><span class="dot" aria-hidden="true"></span>Tighten the inset instead</button>
+        <button class="chip" type="button" data-c="back"><span class="dot" aria-hidden="true"></span>Stop — give it back to me</button>
+      </div>
+      <div class="steer-foot">
+        <button class="go" id="btnGo" type="button" disabled>Re-plan from here</button>
+        <span class="note">The discarded edit is reverted before anything new starts.</span>
+      </div>
+    </div>
+
+    <div class="replan-note" id="replanNote">
+      <span class="badge">Re-planned</span>
+      <span id="replanText">New plan in 1.1s. The first thing it does is measure, not edit.</span>
+    </div>
+
+    <div class="handback" id="handback">
+      <b>Javis stopped and handed #764 back.</b>
+      <p>7 steps discarded, PR #27 untouched, nothing merged. The issue is yours again — and nothing else runs on it until you award it.</p>
+    </div>
+
+    <div class="bound">
+      <div class="bound-col you"><span class="bound-k">You can</span><span class="bound-v">halt · redirect · resume · merge</span></div>
+      <div class="bound-col"><span class="bound-k">Javis can</span><span class="bound-v">propose · edit · run checks · ask — never restart itself</span></div>
+    </div>
+
+    <div class="fl-foot">
+      <span class="try">Try it: halt while step 3 is running, then pick a different direction.</span>
+      <button class="sbtn" id="btnReset" type="button">Reset the flight</button>
+    </div>
+  </section>
+
+  <div class="cols">
+    <main class="stack">
+      <section class="card desc">
+        <div class="card-h"><span class="card-k">Description</span></div>
+        <h4>Summary</h4>
+        <p class="clamp">On mobile, when an unread notification count exceeds a single digit (e.g. "12" or "99+"), the unread badge on the bottom navigation tab bar shifts off-center and clips outside the navigation icon container due to an improper negative right offset.</p>
+        <h4>Open question</h4>
+        <p class="clamp">Apex, Oct 27: “Is this the badge, or the nav row?” If the row is the constraint, PR #27 fixes the wrong element.</p>
+        <button class="more" type="button" id="more">View more</button>
+      </section>
+
+      <section class="card">
+        <div class="card-h"><span class="card-k">Activity</span><a class="card-a" href="#">Subscribe</a></div>
+        <ul class="evs" id="events">
+          <li class="ev agent"><span class="ev-dot" aria-hidden="true"></span><div><p><b>Javis</b> picked the work up and started a 7-step plan.</p><span class="ev-t">just now</span></div></li>
+          <li class="ev system"><span class="ev-dot" aria-hidden="true"></span><div><p><b>4/8</b> blocked the merge: 1 unresolved reviewer ask.</p><span class="ev-t">Oct 27 · 3:04 PM</span></div></li>
+          <li class="ev agent"><span class="ev-dot" aria-hidden="true"></span><div><p><b>Six Eyes</b> asked whether the 99+ check had ever run at 320px on #27.</p><span class="ev-t">Oct 28 · 9:15 AM</span></div></li>
+          <li class="ev empty"><span class="ev-dot" aria-hidden="true"></span><div><p>Nothing from a person since the issue was filed.</p><span class="ev-t">6 days</span></div></li>
+        </ul>
+      </section>
+    </main>
+
+    <aside class="rail">
+      <section class="card">
+        <div class="card-h"><span class="card-k">Status</span></div>
+        <div class="status-row">
+          <span class="st work" id="stChip"><i aria-hidden="true"></i> <span id="stText">Agent working</span></span>
+          <span class="sev">Medium</span>
+        </div>
+        <div class="opened" id="opened">Javis has held this for <b>00:04:12</b></div>
+      </section>
+
+      <section class="card">
+        <div class="card-h"><span class="card-k">What the halt saved</span></div>
+        <div class="saved">
+          <div class="big" id="savedBig">0 <span>steps stopped</span></div>
+          <div class="sub" id="savedSub">The flight is still running. Hold the brake to see what it costs to let it finish.</div>
+          <ul id="savedList"></ul>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-h"><span class="card-k">Pull request</span><a class="card-a" href="#">#27</a></div>
+        <div class="pr-line">
+          <span class="pr-name">Clamp badge to two digits</span>
+          <span class="sev">Open</span>
+        </div>
+        <div class="pr-meta">3 files · +41 −6 · CI green · by Javis</div>
+        <div class="pr-ask"><b>!</b><span>Six Eyes: “run the 99+ check at 320px on this PR, then merge.”</span></div>
+      </section>
+
+      <section class="card">
+        <div class="card-h"><span class="card-k">People</span></div>
+        <div class="person">
+          <span class="pav r" aria-hidden="true">HR</span>
+          <div><div class="p-l">Reporter</div><div class="p-n">Habeeb Raji</div></div>
+        </div>
+        <div class="person">
+          <span class="pav a" aria-hidden="true">AP</span>
+          <div><div class="p-l">Assignee</div><div class="p-n">APHOE <span>· you</span></div></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var flight = document.getElementById("flight");
+  var stepsEl = document.getElementById("steps");
+  var brake = document.getElementById("brake");
+  var brakeFill = document.getElementById("brakeFill");
+  var brakeLbl = document.getElementById("brakeLbl");
+  var flState = document.getElementById("flState");
+  var flK = document.getElementById("flK");
+  var flName = document.getElementById("flName");
+  var flClock = document.getElementById("flClock");
+  var planCount = document.getElementById("planCount");
+  var planEdit = document.getElementById("planEdit");
+  var haltBar = document.getElementById("haltBar");
+  var haltText = document.getElementById("haltText");
+  var haltPct = document.getElementById("haltPct");
+  var steer = document.getElementById("steer");
+  var chips = document.getElementById("chips");
+  var btnGo = document.getElementById("btnGo");
+  var replanNote = document.getElementById("replanNote");
+  var replanText = document.getElementById("replanText");
+  var handback = document.getElementById("handback");
+  var events = document.getElementById("events");
+  var savedBig = document.getElementById("savedBig");
+  var savedSub = document.getElementById("savedSub");
+  var savedList = document.getElementById("savedList");
+  var stChip = document.getElementById("stChip");
+  var stText = document.getElementById("stText");
+  var opened = document.getElementById("opened");
+
+  var BRAKE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+  var BASE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+
+  var BASE = [
+    { t: "Re-read #764 and Six Eyes's escalation", m: "18s", s: "done" },
+    { t: "Trace the offset in badge.tsx", m: "12s", s: "done" },
+    { t: "Rewrite the badge to clamp at two digits", m: "editing", s: "run", dur: 9 },
+    { t: "Update the badge container in tab-bar.tsx", m: "queued", s: "todo", dur: 6 },
+    { t: "Regenerate snapshots at 320 / 375 / 414", m: "queued", s: "todo", dur: 5 },
+    { t: "Push to PR #27", m: "queued", s: "todo", dur: 3 },
+    { t: "Post “fixed” to the thread", m: "queued", s: "todo", dur: 2 }
+  ];
+
+  var REPLANS = {
+    row: {
+      text: "New plan in 1.1s. The first thing it does is measure the row, not edit the badge.",
+      big: "3", bigS: "files never touched",
+      savedSub: "Javis checked the row first — it was 56px all along. The badge was the problem.",
+      files: ["tabs.tsx (never opened)", "snapshots (kept)", "PR #27 (no new push)"],
+      steps: [
+        { t: "Re-measure the nav row at 320px before editing", m: "6s", s: "done", dur: 6 },
+        { t: "Row is 56px, badge needs 22px — the row was never the constraint", m: "9s", s: "done", dur: 9 },
+        { t: "Revert the badge rewrite, keep PR #27's clamp", m: "running", s: "run", dur: 8 },
+        { t: "Re-run the 320px snapshot with the scrollbar reserved", m: "queued", s: "todo", dur: 6 },
+        { t: "Ask Six Eyes to close the condition on #27", m: "queued", s: "todo", dur: 4 }
+      ]
+    },
+    inset: {
+      text: "New plan in 1.4s. Smallest change on the table — one line, one file.",
+      big: "1", bigS: "file, one line",
+      savedSub: "Javis reverted the rewrite and went back to the inset Bolu proposed on day one.",
+      files: ["badge.tsx (reverted)", "tab-bar.tsx (1 line)", "PR #27 (no new push)"],
+      steps: [
+        { t: "Revert the clamp from PR #27", m: "8s", s: "done", dur: 8 },
+        { t: "Set the inset 8px → 4px in tab-bar.tsx", m: "running", s: "run", dur: 7 },
+        { t: "Measure at 320px with the scrollbar reserved", m: "queued", s: "todo", dur: 6 },
+        { t: "Re-run snapshots at 320 / 375 / 414", m: "queued", s: "todo", dur: 5 }
+      ]
+    }
+  };
+
+  var state = "running";
+  var plan = BASE;
+  var step = 2;
+  var prog = 0;
+  var ticker = null;
+  var holdTimer = null;
+  var holdStart = 0;
+  var holdRaf = null;
+  var clock = 252;
+  var clockTicker = null;
+  var choice = null;
+  var HOLD_MS = 420;
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function clockText() {
+    var s = clock % 60, m = Math.floor(clock / 60) % 60, h = Math.floor(clock / 3600);
+    return pad(h) + ":" + pad(m) + ":" + pad(s);
+  }
+
+  function renderPlan(opts) {
+    var fresh = opts && opts.fresh;
+    stepsEl.innerHTML = plan.map(function (s, i) {
+      var cls = "step " + s.s;
+      if (state === "halted" && s.s === "todo") cls += " never";
+      if (fresh) cls += " in";
+      var meta = s.m;
+      if (state === "halted" && i === step) meta = "halted " + Math.round(prog) + "%";
+      if (state === "halted" && s.s === "todo") meta = "never ran";
+      var bar = "";
+      if (s.s === "run" && state !== "halted") {
+        bar = '<div class="step-bar"><i style="width:' + Math.round(prog) + '%"></i></div>';
+      } else if (s.s === "run" && state === "halted") {
+        bar = '<div class="step-bar"><i style="width:' + Math.round(prog) + '%"></i></div>';
+      } else if (s.s === "halt") {
+        bar = '<div class="step-bar"><i style="width:' + Math.round(prog) + '%"></i></div>';
+      }
+      var mark = s.s === "done" ? "✓" : (s.s === "halt" ? "!" : "");
+      return '<li class="' + cls + '" style="' + (fresh ? "animation-delay:" + (i * 70) + "ms" : "") + '">' +
+        '<span class="step-m" aria-hidden="true">' + mark + '</span>' +
+        '<div><div class="step-t">' + esc(s.t) + '</div>' + bar + '</div>' +
+        '<span class="step-meta">' + esc(meta) + '</span>' +
+        '</li>';
+    }).join("");
+
+    planCount.textContent = plan.length + (plan.length === 1 ? " step" : " steps");
+    var running = plan[step] || plan[plan.length - 1];
+    if (state === "halted") {
+      planEdit.textContent = "frozen";
+    } else if (running && running.s === "run") {
+      planEdit.textContent = verb(running.t);
+    } else {
+      planEdit.textContent = "waiting";
+    }
+  }
+
+  function verb(t) {
+    var w = String(t).split(" ")[0].toLowerCase().replace(/[^a-z-]/g, "");
+    var map = { "re-measure": "measuring", measure: "measuring", revert: "reverting", push: "pushing", post: "posting", regenerate: "generating", ask: "asking", rewrite: "editing", update: "editing", set: "editing" };
+    return map[w] || "working";
+  }
+
+  function setBar() {
+    var bar = stepsEl.querySelector(".step.run .step-bar i");
+    if (bar) bar.style.width = Math.round(prog) + "%";
+    if (state === "halted") {
+      var m = stepsEl.querySelector(".step.run .step-meta, .step.halt .step-meta");
+      if (m) m.textContent = "halted " + Math.round(prog) + "%";
+    }
+  }
+
+  function startClock() {
+    if (clockTicker) return;
+    clockTicker = window.setInterval(function () {
+      if (state === "halted" || state === "handed" || state === "done") return;
+      clock++;
+      flClock.textContent = clockText();
+    }, 1000);
+  }
+
+  function run() {
+    stopTick();
+    state = "running";
+    ticker = window.setInterval(function () {
+      prog += 100 / (plan[step].dur * 10);
+      if (prog >= 100) {
+        plan[step].s = "done";
+        plan[step].m = plan[step].dur + "s";
+        prog = 0;
+        step++;
+        if (step >= plan.length) {
+          stopTick();
+          finish();
+          return;
+        }
+        renderPlan();
+        return;
+      }
+      setBar();
+    }, 100);
+    renderPlan();
+    syncChrome();
+  }
+
+  function stopTick() {
+    if (ticker) { window.clearInterval(ticker); ticker = null; }
+  }
+
+  function finish() {
+    state = "done";
+    stopTick();
+    var last = plan[plan.length - 1];
+    last.s = "done";
+    last.m = last.dur ? last.dur + "s" : "done";
+    renderPlan();
+    flight.classList.add("done");
+    flState.textContent = "complete · " + plan.length + " of " + plan.length + " steps";
+    flK.textContent = "Flight complete";
+    flName.innerHTML = 'Javis <span>· 0 human checks</span>';
+    planEdit.textContent = "delivered";
+    brake.disabled = true;
+    brakeLbl.innerHTML = BASE_ICON + "Flight over";
+    haltBar.classList.add("on");
+    haltText.textContent = plan.length === 7
+      ? "Javis pushed the clamp and posted “fixed”. Nobody measured the row."
+      : "Javis finished the re-planned run and posted to the thread.";
+    haltPct.textContent = "0 halts";
+    stChip.className = "st held";
+    stText.textContent = "Waiting on a person";
+    opened.innerHTML = "Delivered without a check · the 320px ask is <b>still open</b>";
+    savedBig.innerHTML = "0 <span>halts</span>";
+    savedSub.textContent = "The work shipped. Six days of agent decisions, still no human measurement.";
+    log("agent", "<b>Javis</b> finished the plan and posted “fixed” — without the 320px check.", "just now");
+    log("system", "<b>4/8</b> still blocks the merge: 1 unresolved reviewer ask.", "just now");
+  }
+
+  function halt() {
+    if (state !== "running") return;
+    stopTick();
+    state = "halted";
+    plan[step].s = "halt";
+    flight.classList.add("halted", "flash");
+    window.setTimeout(function () { flight.classList.remove("flash"); }, 950);
+    flState.textContent = "halted · step " + (step + 1) + " of " + plan.length;
+    flK.textContent = "Halted by you";
+    flName.innerHTML = 'Javis <span>· frozen mid-edit</span>';
+    brake.disabled = true;
+    brakeLbl.innerHTML = BRAKE_ICON + "Halted";
+    brakeFill.style.width = "0%";
+    haltBar.classList.add("on");
+    var remaining = plan.filter(function (s) { return s.s === "todo"; }).length;
+    haltText.textContent = "Javis stopped mid-edit. " + remaining + " queued step" + (remaining === 1 ? "" : "s") + " never ran.";
+    haltPct.textContent = Math.round(prog) + "%";
+    steer.classList.add("on");
+    stChip.className = "st held";
+    stText.textContent = "Paused by you";
+    opened.innerHTML = "Halted by you at <b>" + Math.round(prog) + "%</b> of step " + (step + 1);
+    savedBig.innerHTML = "3 <span>files never touched</span>";
+    savedSub.textContent = "41s of edits discarded. The push, the snapshots and the summary never happened.";
+    savedList.innerHTML = "<li>tab-bar.tsx</li><li>snapshots (320 / 375 / 414)</li><li>PR #27 push</li>";
+    renderPlan();
+    log("you", "<b>You</b> halted Javis at " + Math.round(prog) + "% of step " + (step + 1) + ". " + remaining + " step" + (remaining === 1 ? "" : "s") + " never ran.", "just now");
+    var firstChip = chips.querySelector(".chip");
+    if (firstChip) firstChip.focus();
+  }
+
+  function replan(c) {
+    if (c === "back") {
+      state = "handed";
+      stopTick();
+      flight.classList.add("handed");
+      flState.textContent = "returned · 0 steps running";
+      flK.textContent = "Handed back";
+      flName.innerHTML = 'Javis <span>· idle</span>';
+      brakeLbl.innerHTML = BASE_ICON + "Returned to you";
+      steer.classList.remove("on");
+      haltBar.classList.remove("on");
+      plan = [];
+      step = 0;
+      prog = 0;
+      stepsEl.innerHTML = '<li class="step never"><span class="step-m" aria-hidden="true">–</span><div><div class="step-t">No plan. The issue is back in your queue.</div></div><span class="step-meta">you</span></li>';
+      planCount.textContent = "0 steps";
+      planEdit.textContent = "idle";
+      handback.classList.add("on");
+      stChip.className = "st yours";
+      stText.textContent = "Back with you";
+      opened.innerHTML = "Halted and returned by you · <b>nothing merged</b>";
+      savedBig.innerHTML = "7 <span>steps stopped</span>";
+      savedSub.textContent = "Nothing shipped, nothing reverted, nothing decided. That is the honest state of #764.";
+      savedList.innerHTML = "<li>badge.tsx (unchanged)</li><li>tab-bar.tsx (unchanged)</li><li>PR #27 (untouched)</li>";
+      log("you", "<b>You</b> stopped Javis and took #764 back. No agent can pick it up without an award.", "just now");
+      return;
+    }
+
+    var R = REPLANS[c];
+    plan = R.steps.map(function (s) { return { t: s.t, m: s.m, s: s.s, dur: s.dur }; });
+    step = 2;
+    prog = 0;
+    steer.classList.remove("on");
+    haltBar.classList.remove("on");
+    replanNote.classList.add("on");
+    replanText.textContent = R.text;
+    flight.classList.remove("halted");
+    flK.textContent = "Re-planned by you";
+    flName.innerHTML = 'Javis <span>· new direction</span>';
+    brake.disabled = false;
+    brakeLbl.innerHTML = BRAKE_ICON + "Hold to halt";
+    stChip.className = "st work";
+    stText.textContent = "Agent working";
+    opened.innerHTML = "Re-planned by you · <b>" + plan.length + " steps</b>";
+    savedBig.innerHTML = R.big + " <span>" + R.bigS + "</span>";
+    savedSub.textContent = R.savedSub;
+    savedList.innerHTML = R.files.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("");
+    run();
+    renderPlan({ fresh: true });
+    log("you", "<b>You</b> chose a different direction: " + chips.querySelector('[data-c="' + c + '"]').textContent.trim() + ".", "just now");
+    log("agent", "<b>Javis</b> discarded " + BASE.length + " steps and wrote " + plan.length + " new ones in 1.1s.", "just now");
+  }
+
+  function syncChrome() {
+    flState.textContent = "running · step " + (step + 1) + " of " + plan.length;
+    flClock.textContent = clockText();
+  }
+
+  function log(kind, html, when) {
+    var li = document.createElement("li");
+    li.className = "ev " + kind + " fresh";
+    li.innerHTML = '<span class="ev-dot" aria-hidden="true"></span><div><p>' + html + '</p><span class="ev-t">' + when + '</span></div>';
+    events.insertBefore(li, events.firstChild);
+    var empties = events.querySelectorAll(".ev.empty");
+    if (empties.length) empties[empties.length - 1].remove();
+  }
+
+  /* ---- hold to halt ---- */
+  function setFill(pct) {
+    brakeFill.style.width = pct + "%";
+  }
+  function startHold(e) {
+    if (state !== "running" || brake.disabled) return;
+    if (e && e.pointerId !== undefined) {
+      try { brake.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+    holdStart = performance.now();
+    var loop = function (now) {
+      var p = Math.min(1, (now - holdStart) / HOLD_MS);
+      setFill(p * 100);
+      if (p >= 1) { holdRaf = null; halt(); return; }
+      holdRaf = window.requestAnimationFrame(loop);
+    };
+    holdRaf = window.requestAnimationFrame(loop);
+  }
+  function cancelHold() {
+    if (holdRaf) { window.cancelAnimationFrame(holdRaf); holdRaf = null; }
+    if (state === "running") setFill(0);
+  }
+  brake.addEventListener("pointerdown", startHold);
+  brake.addEventListener("pointerup", cancelHold);
+  brake.addEventListener("pointercancel", cancelHold);
+  brake.addEventListener("pointerleave", function () { if (!brake.disabled) cancelHold(); });
+  brake.addEventListener("keydown", function (e) {
+    if (e.key === " " || e.key === "Enter") { e.preventDefault(); halt(); }
+  });
+
+  chips.addEventListener("click", function (e) {
+    var b = e.target.closest(".chip");
+    if (!b) return;
+    choice = b.dataset.c;
+    Array.prototype.forEach.call(chips.querySelectorAll(".chip"), function (c) {
+      c.classList.toggle("on", c === b);
+    });
+    btnGo.disabled = false;
+    btnGo.textContent = choice === "back" ? "Return #764 to me" : "Re-plan from here";
+  });
+
+  btnGo.addEventListener("click", function () {
+    if (!choice) return;
+    replan(choice);
+  });
+
+  document.getElementById("btnReset").addEventListener("click", reset);
+
+  function reset() {
+    stopTick();
+    cancelHold();
+    state = "running";
+    plan = BASE.map(function (s) { return { t: s.t, m: s.m, s: s.s, dur: s.dur }; });
+    step = 2;
+    prog = 0;
+    clock = 252;
+    choice = null;
+    flight.className = "flight";
+    flK.textContent = "Agent in flight";
+    flName.innerHTML = 'Javis <span>· working on #764</span>';
+    flState.textContent = "running · step 3 of 7";
+    flClock.textContent = clockText();
+    brake.disabled = false;
+    brakeLbl.innerHTML = BRAKE_ICON + "Hold to halt";
+    setFill(0);
+    haltBar.classList.remove("on");
+    steer.classList.remove("on");
+    replanNote.classList.remove("on");
+    handback.classList.remove("on");
+    btnGo.disabled = true;
+    btnGo.textContent = "Re-plan from here";
+    Array.prototype.forEach.call(chips.querySelectorAll(".chip"), function (c) { c.classList.remove("on"); });
+    stChip.className = "st work";
+    stText.textContent = "Agent working";
+    opened.innerHTML = "Javis has held this for <b>00:04:12</b>";
+    savedBig.innerHTML = "0 <span>steps stopped</span>";
+    savedSub.textContent = "The flight is still running. Hold the brake to see what it costs to let it finish.";
+    savedList.innerHTML = "";
+    events.innerHTML =
+      '<li class="ev agent fresh"><span class="ev-dot" aria-hidden="true"></span><div><p><b>Javis</b> picked the work up and started a 7-step plan.</p><span class="ev-t">just now</span></div></li>' +
+      '<li class="ev system"><span class="ev-dot" aria-hidden="true"></span><div><p><b>4/8</b> blocked the merge: 1 unresolved reviewer ask.</p><span class="ev-t">Oct 27 · 3:04 PM</span></div></li>' +
+      '<li class="ev agent"><span class="ev-dot" aria-hidden="true"></span><div><p><b>Six Eyes</b> asked whether the 99+ check had ever run at 320px on #27.</p><span class="ev-t">Oct 28 · 9:15 AM</span></div></li>' +
+      '<li class="ev empty"><span class="ev-dot" aria-hidden="true"></span><div><p>Nothing from a person since the issue was filed.</p><span class="ev-t">6 days</span></div></li>';
+    run();
+  }
+
+  document.getElementById("more").addEventListener("click", function () {
+    var p = document.querySelector(".desc .clamp");
+    p.style.webkitLineClamp = "unset";
+    this.remove();
+  });
+
+  startClock();
+  run();
+})();
+</script>
+</body>
+</html>
